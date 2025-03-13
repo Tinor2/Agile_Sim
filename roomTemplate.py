@@ -1,20 +1,55 @@
+import json
+
 class room:
     all_rooms = []
+    # Load cell icons from JSON file
+    with open('cell_icons.json', 'r') as f:
+        cell_icons = json.load(f)
+
     
     def __init__(self, id, grid_size):
         self.id = id
-        self.doors = []  # Will contain tuples of (door_position, target_room_id)
+        self.doors = []
+        self.size = grid_size
+        self.cells = [[room.cell_icons["none"] for _ in range(grid_size)] for _ in range(grid_size)]
         room.all_rooms.append(self)
     
     def add_door(self, door_position, target_room_id):
         self.doors.append((door_position, target_room_id))
-    
-    def __repr__(self):
-        return f"Room {self.id} with doors to {[target for _, target in self.doors]}"
-
+        # Map string positions to grid coordinates
+        position_map = {
+            "north": (0, self.size//2),
+            "south": (self.size-1, self.size//2),
+            "east": (self.size//2, self.size-1),
+            "west": (self.size//2, 0)
+        }
+        x, y = position_map[door_position]
+        self.cells[x][y] = room.cell_icons["door"]
+    def render_room(self):
+        display = ""
+        # Print top border
+        display += "+" + "---+" * self.size + "\n"
+        
+        # Print rows
+        for row in range(self.size):
+            # Cell content
+            cell_line = "|"
+            for col in range(self.size):
+                cell_content = self.cells[row][col]
+                cell_line += f" {cell_content} |"
+            display += cell_line + "\n"
+            
+            # Bottom border for each row
+            display += "+" + "---+" * self.size + "\n"
+        return display
 
 class Grid:
-    def __init__(self, grid_size):
+    def __init__(self, grid_size:int, room_size:int|None=None):
+        if room_size is None:
+            room_size = 3
+        elif room_size % 2 == 0:
+            raise ValueError("Room size must be an odd number") 
+        self.room_size = room_size
         self.size = grid_size
         self.rooms = {}
         self.define_rooms()
@@ -25,7 +60,7 @@ class Grid:
         for row in range(self.size):
             for col in range(self.size):
                 room_id = (row, col)
-                self.rooms[room_id] = room(room_id, self.size)
+                self.rooms[room_id] = room(room_id, self.room_size)
         return self.rooms
     def connect_rooms(self):
         # Define possible directions: North, East, South, West
@@ -49,23 +84,22 @@ class Grid:
         for row in range(self.size):
             for col in range(self.size):
                 room = self.rooms[(row, col)]
-                print(f"Room {room.id} has {len(room.doors)} doors connecting to: {[target for _, target in room.doors]}")
-
-
+                render_room_cells = ""
+                print(f"Room {room.id} has {len(room.doors)} doors connecting to: {[target for _, target in room.doors]} and with a layout of \n{room.render_room()}")
+                
 class Map:
     def __init__(self, grid):
         self.grid = grid
     
     def render(self):
-        """Render the grid with perfectly aligned borders and doors"""
         size = self.grid.size
-        
+        door_icon = "D"
         # Create the top border row
         top_row = "+"
         for col in range(size):
             room = self.grid.rooms[(0, col)]
             if any(door_pos == "north" for door_pos, _ in room.doors):
-                top_row += "----D---+"
+                top_row += f"----{door_icon}---+"
             else:
                 top_row += "--------+"
         print(top_row)
@@ -85,7 +119,7 @@ class Map:
                 if col == 0 or not has_west_door:
                     for i in range(3):
                         if i == 1 and has_west_door and col > 0:
-                            lines[i] += "D"
+                            lines[i] += door_icon
                         else:
                             lines[i] += "|"
                 
@@ -103,7 +137,7 @@ class Map:
                 
                 # Right wall or door (east)
                 if any(door_pos == "east" for door_pos, _ in room.doors):
-                    lines[1] += "D"
+                    lines[1] += door_icon
                     lines[0] += "|"
                     lines[2] += "|"
                 else:
@@ -122,7 +156,7 @@ class Map:
                 for col in range(size):
                     room = self.grid.rooms[(row, col)]
                     if any(door_pos == "south" for door_pos, _ in room.doors):
-                        sep_row += "----D---+"
+                        sep_row += f"----{door_icon}---+"
                     else:
                         sep_row += "--------+"
                 print(sep_row)
@@ -132,7 +166,7 @@ class Map:
         for col in range(size):
             room = self.grid.rooms[(size-1, col)]
             if any(door_pos == "south" for door_pos, _ in room.doors):
-                bottom_row += "----D---+"
+                bottom_row += f"----{door_icon}---+"
             else:
                 bottom_row += "--------+"
         print(bottom_row)
@@ -141,7 +175,7 @@ class Map:
 def demo(size=3):
     """Create a grid of the specified size and render it"""
     print(f"Creating a {size}x{size} grid of rooms:")
-    grid = Grid(size)
+    grid = Grid(size,5)
     mapper = Map(grid)
     print("\nRoom Information:")
     grid.print_grid()
@@ -150,4 +184,4 @@ def demo(size=3):
 
 # Run a demo with a 3x3 grid
 if __name__ == "__main__":
-    demo(4)
+    demo(5)
