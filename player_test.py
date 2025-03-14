@@ -12,7 +12,7 @@ class Player:
         self.current_room_id = starting_room_id
         self.position = starting_position
         self.current_room = None
-        Grid(3,5)
+        Grid(3,3)
         # Find and set the player's current room
         for room_obj in Room.all_rooms:
             if room_obj.id == starting_room_id:
@@ -88,9 +88,8 @@ class Player:
         return None
     
     def use_door(self, sample_pos:tuple[int]|None = None):
-
         """
-        Move through a door to the next room if standing on one
+        Move through a door to the next room and place player one cell in front of the door
         
         Returns:
             bool: True if successfully moved to the next room, False otherwise
@@ -110,10 +109,9 @@ class Player:
                     self.current_room_id = target_room_id
                     
                     # Determine entry position in the new room
-                    # If exiting through north, enter through south, etc.
                     entry_positions = {
-                        "north": "south",
-                        "south": "north", 
+                        "north": "south", 
+                        "south": "north",
                         "east": "west",
                         "west": "east"
                     }
@@ -126,8 +124,22 @@ class Player:
                         "west": (self.current_room.size//2, 0)
                     }
                     
-                    # Set the player's position to the entry door of the new room
-                    self.position = position_map[entry_pos]
+                    # Get the door position
+                    door_x, door_y = position_map[entry_pos]
+                    
+                    # Calculate position one cell in front of the door
+                    offset_map = {
+                        "north": (1, 0),    # Move one cell down from north door
+                        "south": (-1, 0),   # Move one cell up from south door
+                        "east": (0, -1),    # Move one cell left from east door
+                        "west": (0, 1)      # Move one cell right from west door
+                    }
+                    
+                    offset_x, offset_y = offset_map[entry_pos]
+                    self.position = (door_x + offset_x, door_y + offset_y)
+                    
+                    # Clear any previous player position and set the new one
+                    self.current_room.add_cell_type("player", *self.position)
                     return True
             return False
         return False
