@@ -1,6 +1,6 @@
 import json
 
-class room:
+class Room:
     all_rooms = []
     # Load cell icons from JSON file
     with open('cell_icons.json', 'r') as f:
@@ -11,8 +11,8 @@ class room:
         self.id = id
         self.doors = []
         self.size = grid_size
-        self.cells = [[room.cell_icons["none"] for _ in range(grid_size)] for _ in range(grid_size)]
-        room.all_rooms.append(self)
+        self.cells = [[Room.cell_icons["none"] for _ in range(grid_size)] for _ in range(grid_size)]
+        Room.all_rooms.append(self)
     
     def add_door(self, door_position, target_room_id):
         self.doors.append((door_position, target_room_id))
@@ -24,7 +24,12 @@ class room:
             "west": (self.size//2, 0)
         }
         x, y = position_map[door_position]
-        self.cells[x][y] = room.cell_icons["door"]
+        self.cells[x][y] = Room.cell_icons["door"]
+    def add_cell_type(self, cell_type, x, y):
+        if Room.cell_icons.get(cell_type) is None:
+            raise ValueError(f"Invalid cell type: {cell_type}")
+        self.cells[x][y] = Room.cell_icons[cell_type]
+
     def render_room(self):
         display = ""
         # Print top border
@@ -60,7 +65,7 @@ class Grid:
         for row in range(self.size):
             for col in range(self.size):
                 room_id = (row, col)
-                self.rooms[room_id] = room(room_id, self.room_size)
+                self.rooms[room_id] = Room(room_id, self.room_size)
         return self.rooms
     def connect_rooms(self):
         # Define possible directions: North, East, South, West
@@ -181,7 +186,7 @@ def demo(size=3):
     grid.print_grid()
     print("\nRoom Grid Map:")
     mapper.render()
-
+ 
 # Run a demo with a 3x3 grid
 if __name__ == "__main__":
-    demo(5)
+    demo(3)

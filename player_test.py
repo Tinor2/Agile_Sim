@@ -1,210 +1,162 @@
-from roomTemplate import room, Grid, Map
-import random
+from roomTemplate import Room, Grid
 
 class Player:
-    def __init__(self, name, starting_room):
-        self.name = name
-        self.current_room = starting_room
-        self.current_cell = (1, 1)  # Start in center of room
-        self.inventory = []
+    def __init__(self, starting_room_id, starting_position):
+        """
+        Initialize a player with a starting room and position
+        
+        Args:
+            starting_room_id: Tuple (row, col) identifying the starting room
+            starting_position: Tuple (x, y) for starting coordinates within the room
+        """
+        self.current_room_id = starting_room_id
+        self.position = starting_position
+        self.current_room = None
+        Grid(3,5)
+        # Find and set the player's current room
+        for room_obj in Room.all_rooms:
+            if room_obj.id == starting_room_id:
+                self.current_room = room_obj
+                break
+        self.current_room.add_cell_type("player", self.position[0], self.position[1])
     
-    def move_within_room(self, direction):
-        direction_map = {
-            "north": (-1, 0),
-            "south": (1, 0),
-            "east": (0, 1),
-            "west": (0, -1)
+    def move(self, direction):
+        """
+        Move the player in the specified direction (w, a, s, d)
+        
+        Args:
+            direction: Character representing movement direction ('w', 'a', 's', 'd')
+        
+        Returns:
+            bool: True if movement was successful, False otherwise
+        """
+        # Define direction mappings
+        directions = {
+            'w': (-1, 0),  # Up
+            'a': (0, -1),  # Left
+            's': (1, 0),   # Down
+            'd': (0, 1)    # Right
         }
         
-        if direction not in direction_map:
-            return f"Invalid direction. Please choose from: {', '.join(direction_map.keys())}"
+        if direction not in directions:
+            return False
         
-        delta_row, delta_col = direction_map[direction]
-        new_row = self.current_cell[0] + delta_row
-        new_col = self.current_cell[1] + delta_col
+        # Calculate new position
+        dx, dy = directions[direction]
+        new_x, new_y = self.position[0] + dx, self.position[1] + dy
         
-        if 0 <= new_row < 3 and 0 <= new_col < 3:
-            # Check if we're at a door position
-            if (new_row == 0 or new_row == 2 or new_col == 0 or new_col == 2):
-                for door_pos, target_id in self.current_room.doors:
-                    if (new_row == 0 and door_pos == "north") or \
-                       (new_row == 2 and door_pos == "south") or \
-                       (new_col == 0 and door_pos == "west") or \
-                       (new_col == 2 and door_pos == "east"):
-                        return f"There's a door leading to room {target_id}. Use 'use_door' to go through it."
-            
-            self.current_cell = (new_row, new_col)
-            return f"You moved {direction} to cell {self.current_cell}"
+        # Check if the new position is within the room bounds
+        if 0 <= new_x < self.current_room.size and 0 <= new_y < self.current_room.size:
+            # Update the player's position
+            if self.check_for_door((new_x,new_y)):
+                self.use_door((new_x,new_y))
+                return True
+            self.current_room.add_cell_type("none", *self.position)
+            self.current_room.add_cell_type("player", new_x, new_y)
+            self.position = (new_x, new_y)
+            return True
+        return False
+    
+    def check_for_door(self, sample_pos:tuple[int]|None = None):
+        """
+        Check if the player is standing on a door tile
+        
+        Returns:
+        tuple or None: (door_position, target_room_id) if on a door, None otherwise
+        """
+        if sample_pos:
+            x,y = sample_pos
+            print("using new position")
+        else:    
+            print("using not new position")
+            x, y = self.position
+        print(f"PLAYER POS: {x, y} CURRENT TILE: {self.current_room.cells[x][y]}")
+        if self.current_room.cells[x][y] == Room.cell_icons["door"]:
+            # Find which door this is
+            for door_pos, target_room_id in self.current_room.doors:
+                # Map string positions to grid coordinates
+                position_map = {
+                    "north": (0, self.current_room.size//2),
+                    "south": (self.current_room.size-1, self.current_room.size//2),
+                    "east": (self.current_room.size//2, self.current_room.size-1),
+                    "west": (self.current_room.size//2, 0)
+                }
+                door_x, door_y = position_map[door_pos]
+                
+                if (door_x, door_y) == (x, y):
+                    return door_pos, target_room_id
+        return None
+    
+    def use_door(self, sample_pos:tuple[int]|None = None):
+
+        """
+        Move through a door to the next room if standing on one
+        
+        Returns:
+            bool: True if successfully moved to the next room, False otherwise
+        """
+        if sample_pos:
+            door_info = self.check_for_door(sample_pos)
         else:
-            return "You can't move that way. You've reached the edge of the room."
-    
-    def use_door(self, target_room_id):
-        # Check if target room is accessible through a door
-        for door_pos, door_target in self.current_room.doors:
-            if door_target == target_room_id:
-                self.current_room = self.current_room.all_rooms[list(self.current_room.all_rooms).index(target_room_id)]
-                # Adjust position based on entry direction
-                if door_pos == "north":
-                    self.current_cell = (2, 1)
-                elif door_pos == "south":
-                    self.current_cell = (0, 1)
-                elif door_pos == "east":
-                    self.current_cell = (1, 0)
-                else:  # west
-                    self.current_cell = (1, 2)
-                return f"You entered room {target_room_id}"
-        return "There is no door leading to that room from here."
-    
-    def look_around(self):
-        # Generate a description of the current room and cell
-        room_desc = f"You are in room {self.current_room.id}, standing in cell {self.current_cell}."
-        
-        # Check if we're at a cell that might have a door
-        doors_info = ""
-        if self.current_cell[0] == 0 or self.current_cell[0] == 2 or self.current_cell[1] == 0 or self.current_cell[1] == 2:
-            doors_info = "\nYou see doors leading to: "
-            available_doors = []
+            door_info = self.check_for_door()
+        if door_info:
+            door_pos, target_room_id = door_info
             
-            for door in self.current_room.doors:
-                # Check door orientation based on current cell
-                if (self.current_cell[0] == 0 and self.current_room.id[0] > door[0]) or \
-                   (self.current_cell[0] == 2 and self.current_room.id[0] < door[0]) or \
-                   (self.current_cell[1] == 0 and self.current_room.id[1] > door[1]) or \
-                   (self.current_cell[1] == 2 and self.current_room.id[1] < door[1]):
-                    available_doors.append(str(door))
-            
-            if available_doors:
-                doors_info += ", ".join(available_doors)
-            else:
-                doors_info = "\nThere are no doors nearby."
-        
-        # Random chance to find an item
-        item_info = ""
-        if random.random() < 0.3:  # 30% chance to find something
-            items = ["rusty key", "old coin", "torn page", "small gem", "wooden token"]
-            item = random.choice(items)
-            item_info = f"\nYou notice a {item} on the ground. You can 'take' it."
-        
-        return room_desc + doors_info + item_info
+            # Find the target room
+            for room_obj in Room.all_rooms:
+                if room_obj.id == target_room_id:
+                    # Update the player's current room
+                    self.current_room = room_obj
+                    self.current_room_id = target_room_id
+                    
+                    # Determine entry position in the new room
+                    # If exiting through north, enter through south, etc.
+                    entry_positions = {
+                        "north": "south",
+                        "south": "north", 
+                        "east": "west",
+                        "west": "east"
+                    }
+                    
+                    entry_pos = entry_positions[door_pos]
+                    position_map = {
+                        "north": (0, self.current_room.size//2),
+                        "south": (self.current_room.size-1, self.current_room.size//2),
+                        "east": (self.current_room.size//2, self.current_room.size-1),
+                        "west": (self.current_room.size//2, 0)
+                    }
+                    
+                    # Set the player's position to the entry door of the new room
+                    self.position = position_map[entry_pos]
+                    return True
+            return False
+        return False
     
-    def investigate(self):
-        # Generate a more detailed description of the current cell
-        descriptions = [
-            "The walls are covered in strange symbols.",
-            "There's a mysterious pattern etched into the floor.",
-            "You notice scratch marks near the corners of this cell.",
-            "The air feels slightly colder here.",
-            "A faint humming sound can be heard.",
-            "The floor tiles in this section are a different color.",
-            "This part of the room seems recently disturbed.",
-            "Everything appears normal in this section.",
-            "A dim light flickers momentarily and then fades.",
-            "You sense that something important once happened here."
-        ]
+    def get_position_info(self):
+        """
+        Get information about the player's current position
         
-        # Special descriptions for edge cells
-        if self.current_cell[0] == 0 or self.current_cell[0] == 2 or self.current_cell[1] == 0 or self.current_cell[1] == 2:
-            edge_descriptions = [
-                "The wall here seems slightly different than the others.",
-                "You can feel a draft coming from somewhere.",
-                "There's a small crack running along the edge of the floor.",
-                "This section of the wall looks like it might conceal something."
-            ]
-            descriptions.extend(edge_descriptions)
-        
-        # Puzzle hint with 20% probability
-        puzzle_hint = ""
-        if random.random() < 0.2:
-            hints = [
-                "There's a small indentation that looks like it could fit a specific object.",
-                "You find a note that reads: 'The sequence matters'.",
-                "There's a set of symbols that might represent a code.",
-                "You notice a mechanism that seems to be part of a larger puzzle.",
-                "A subtle arrow points towards another room."
-            ]
-            puzzle_hint = f"\n{random.choice(hints)}"
-        
-        return f"You carefully examine the area around you.\n{random.choice(descriptions)}{puzzle_hint}"
-    
-    def take(self, item):
-        # Simplified item collection
-        if random.random() < 0.5:  # 50% chance of success
-            self.inventory.append(item)
-            return f"You picked up the {item} and added it to your inventory."
-        else:
-            return f"You try to take the {item}, but it's stuck or not actually there."
-    
-    def show_inventory(self):
-        if not self.inventory:
-            return "Your inventory is empty."
-        return f"Inventory: {', '.join(self.inventory)}"
+        Returns:
+            dict: Information including room ID and position
+        """
+        return {
+            "room_id": self.current_room_id,
+            "position": self.position,
+        }
 
 
-def start_game():
-    grid = Grid(3)
-    mapper = Map(grid)
-    
-    # Create player in starting room (0,0)
-    starting_room = grid.rooms[(0, 0)]
-    player = Player("Adventurer", starting_room)
-    
-    print(f"Welcome, {player.name}! You find yourself in a mysterious dungeon...")
-    print("\nCurrent map of the dungeon:")
-    mapper.render()
-    print("You can use the following commands:")
-    print("- move [direction] (north, south, east, west)")
-    print("- use_door [room_id] (e.g., '(0, 1)')")
-    print("- look")
-    print("- investigate")
-    print("- take [item]")
-    print("- inventory")
-    print("- quit")
-    
-    print("\n" + player.look_around())
-    
-    # Game loop
-    while True:
-        command = input("\nWhat would you like to do? ").strip().lower().split(" ", 1)
-        
-        if command[0] == "quit":
-            print("Thanks for playing!")
-            break
-        
-        elif command[0] == "move":
-            if len(command) > 1:
-                print(player.move_within_room(command[1]))
-            else:
-                print("Move where? Please specify a direction.")
-        
-        elif command[0] == "use_door":
-            if len(command) > 1:
-                try:
-                    # Convert string representation of tuple to actual tuple
-                    target = eval(command[1])
-                    print(player.use_door(target))
-                except:
-                    print("Invalid room format. Use (row, col) format.")
-            else:
-                print("Which door? Please specify a room ID.")
-        
-        elif command[0] == "look":
-            print(player.look_around())
-        
-        elif command[0] == "investigate":
-            print(player.investigate())
-        
-        elif command[0] == "take":
-            if len(command) > 1:
-                print(player.take(command[1]))
-            else:
-                print("Take what? Please specify an item.")
-        
-        elif command[0] == "inventory":
-            print(player.show_inventory())
-        
-        else:
-            print("I don't understand that command.")
+player = Player((0,1), (0, 2))
+print(player.current_room.render_room())
 
-
-if __name__ == "__main__":
-    start_game()
+while True:
+    direction = input("Enter movement direction (w, a, s, d): ")
+    if direction == "q":
+        break
+    if player.move(direction):
+        print(player.current_room.render_room())
+        print(player.get_position_info())
+    elif player.use_door():
+        print(player.current_room.render_room())
+        print(player.get_position_info())
+    else:
+        print("Invalid move")
