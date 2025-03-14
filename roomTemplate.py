@@ -1,5 +1,5 @@
 import json
-
+import random
 class Room:
     all_rooms = []
     # Load cell icons from JSON file
@@ -59,6 +59,7 @@ class Grid:
         self.rooms = {}
         self.define_rooms()
         self.connect_rooms()
+        self.add_puzzles(10, is_center=False)
     
     def define_rooms(self):
         # Create rooms in a grid pattern
@@ -84,7 +85,25 @@ class Grid:
                 if 0 <= neighbor_row < self.size and 0 <= neighbor_col < self.size:
                     door_position = door_positions[direction_idx]
                     room.add_door(door_position, neighbor_id)
-    
+    def add_puzzles(self, total_puzzles:int, is_center:bool|None = None):
+        if is_center is None:
+            is_center = False
+        for puzzle in range(total_puzzles):
+            while True:
+                room = random.choice(Room.all_rooms)
+                break
+                # if is_center:
+                #     if room.id == (self.size//2, self.size//2):
+                #         pass # Do not add a puzzle to the center room
+                #     else:
+                #         break # Valid room to add puzzle to.
+            while True:
+                x = random.randint(0, self.room_size-1)
+                y = random.randint(0, self.room_size-1)
+                if room.cells[x][y] == Room.cell_icons["none"]: # We do not want to overide any other cells
+                    room.add_cell_type("puzzle", x, y)
+                    break
+
     def print_grid(self):
         for row in range(self.size):
             for col in range(self.size):
@@ -181,6 +200,7 @@ def demo(size=3):
     """Create a grid of the specified size and render it"""
     print(f"Creating a {size}x{size} grid of rooms:")
     grid = Grid(size,5)
+    grid.add_puzzles(10)
     mapper = Map(grid)
     print("\nRoom Information:")
     grid.print_grid()

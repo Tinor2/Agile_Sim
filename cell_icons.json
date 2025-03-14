@@ -1,6 +1,6 @@
 {
     "none":" ",
     "door":"D",
-    "puzzle":"?",
+    "puzzle":"\u001b[35m?\u001b[0m",
     "player":"\u001b[32m@\u001b[0m"
 }

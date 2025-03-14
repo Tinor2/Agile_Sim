@@ -1,5 +1,6 @@
 from roomTemplate import Room, Grid
-
+from all_puzzles import normal_puzzles as n_puzzles, key_puzzles as k_puzzles
+import random
 class Player:
     def __init__(self, starting_room_id, starting_position):
         """
@@ -12,7 +13,7 @@ class Player:
         self.current_room_id = starting_room_id
         self.position = starting_position
         self.current_room = None
-        Grid(3,3)
+        Grid(3,5)
         # Find and set the player's current room
         for room_obj in Room.all_rooms:
             if room_obj.id == starting_room_id:
@@ -22,7 +23,7 @@ class Player:
     
     def move(self, direction):
         """
-        Move the player in the specified direction (w, a, s, d)
+        Move the player in the specified direction (w, a, s, d). Also check for doors and special cells
         
         Args:
             direction: Character representing movement direction ('w', 'a', 's', 'd')
@@ -51,6 +52,11 @@ class Player:
             if self.check_for_door((new_x,new_y)):
                 self.use_door((new_x,new_y))
                 return True
+            if self.check_for_special_cell((new_x,new_y)):
+                if self.check_for_special_cell((new_x,new_y)) == "puzzle":
+                    random_puzzle = random.choice(n_puzzles)
+                    print(random_puzzle)
+                    n_puzzles.remove(random_puzzle)
             self.current_room.add_cell_type("none", *self.position)
             self.current_room.add_cell_type("player", new_x, new_y)
             self.position = (new_x, new_y)
@@ -86,7 +92,22 @@ class Player:
                 if (door_x, door_y) == (x, y):
                     return door_pos, target_room_id
         return None
-    
+    def check_for_special_cell(self, sample_pos:tuple[int]|None = None):
+        """
+        Check if the player is standing on a special cell, other than doorways
+        
+        Returns:
+        str or None: Special cell type if on one, None otherwise
+        """
+        if sample_pos:
+            x, y = sample_pos
+        else:
+            x, y = self.position
+        for cell_type, icon in Room.cell_icons.items():
+            if icon == self.current_room.cells[x][y] and cell_type != "door":
+                return cell_type
+        return None
+
     def use_door(self, sample_pos:tuple[int]|None = None):
         """
         Move through a door to the next room and place player one cell in front of the door
