@@ -1,19 +1,21 @@
 import json
 import random
+
 class Room:
     all_rooms = []
     # Load cell icons from JSON file
     with open('cell_icons.json', 'r') as f:
         cell_icons = json.load(f)
 
-    
     def __init__(self, id, grid_size):
         self.id = id
         self.doors = []
         self.size = grid_size
         self.cells = [[Room.cell_icons["none"] for _ in range(grid_size)] for _ in range(grid_size)]
         Room.all_rooms.append(self)
-    
+        self.has_player = False
+        self.puzzle_count = 0  # Add puzzle counter
+        self.max_puzzles = 2   # Set maximum puzzles per room
     def add_door(self, door_position, target_room_id):
         self.doors.append((door_position, target_room_id))
         # Map string positions to grid coordinates
@@ -28,9 +30,27 @@ class Room:
     def add_cell_type(self, cell_type, x, y):
         if Room.cell_icons.get(cell_type) is None:
             raise ValueError(f"Invalid cell type: {cell_type}")
+        if cell_type == "puzzle":
+            if self.puzzle_count >= self.max_puzzles:
+                return False
+            self.puzzle_count += 1
+        if cell_type == "player":
+            if self.has_player:
+                # Clear any existing player icon
+                self.clear_player()
+            self.has_player = True
         self.cells[x][y] = Room.cell_icons[cell_type]
+        return True
+    
+    def clear_player(self):
+        """Remove player icon from room"""
+        for x in range(self.size):
+            for y in range(self.size):
+                if self.cells[x][y] == Room.cell_icons["player"]:
+                    self.cells[x][y] = Room.cell_icons["none"]
+        self.has_player = False
 
-    def render_room(self):
+    def render_room(self, ):
         display = ""
         # Print top border
         display += "+" + "---+" * self.size + "\n"
@@ -59,7 +79,7 @@ class Grid:
         self.rooms = {}
         self.define_rooms()
         self.connect_rooms()
-        self.add_puzzles(10, is_center=False)
+        self.add_puzzles(10, is_center=True)
     
     def define_rooms(self):
         # Create rooms in a grid pattern
@@ -88,21 +108,29 @@ class Grid:
     def add_puzzles(self, total_puzzles:int, is_center:bool|None = None):
         if is_center is None:
             is_center = False
-        for puzzle in range(total_puzzles):
-            while True:
-                room = random.choice(Room.all_rooms)
-                break
-                # if is_center:
-                #     if room.id == (self.size//2, self.size//2):
-                #         pass # Do not add a puzzle to the center room
-                #     else:
-                #         break # Valid room to add puzzle to.
-            while True:
-                x = random.randint(0, self.room_size-1)
-                y = random.randint(0, self.room_size-1)
-                if room.cells[x][y] == Room.cell_icons["none"]: # We do not want to overide any other cells
-                    room.add_cell_type("puzzle", x, y)
-                    break
+        puzzles_added = 0
+        max_attempts = total_puzzles * 3  # Prevent infinite loops
+        attempts = 0
+
+        while puzzles_added < total_puzzles and attempts < max_attempts:
+            room = random.choice(Room.all_rooms)
+            attempts += 1
+
+            # Skip center room if is_center is True
+            if is_center and room.id == (self.size//2, self.size//2):
+                continue
+
+            # Skip if room has reached max puzzles
+            if room.puzzle_count >= room.max_puzzles:
+                continue
+
+            x = random.randint(0, room.size-1)
+            y = random.randint(0, room.size-1)
+
+            if room.cells[x][y] == Room.cell_icons["none"]:
+                if room.add_cell_type("puzzle", x, y):
+                    puzzles_added += 1
+                    print(f"Added puzzle {puzzles_added} to room {room.id}")
 
     def print_grid(self):
         for row in range(self.size):
@@ -200,12 +228,15 @@ def demo(size=3):
     """Create a grid of the specified size and render it"""
     print(f"Creating a {size}x{size} grid of rooms:")
     grid = Grid(size,5)
-    grid.add_puzzles(10)
+    # grid.add_puzzles(10,True)
     mapper = Map(grid)
     print("\nRoom Information:")
     grid.print_grid()
     print("\nRoom Grid Map:")
     mapper.render()
+    # Print a specific room with ID (0,0)
+    print("\nRendering room (1,1):")
+    print(grid.rooms[(1,1)].render_room())
  
 # Run a demo with a 3x3 grid
 if __name__ == "__main__":
