@@ -30,6 +30,10 @@ class Room:
     def add_cell_type(self, cell_type, x, y):
         if Room.cell_icons.get(cell_type) is None:
             raise ValueError(f"Invalid cell type: {cell_type}")
+        # Allow locked and boss cells to be added
+        if cell_type in ["locked", "boss"]:
+            self.cells[x][y] = Room.cell_icons[cell_type]
+            return True
         if cell_type == "puzzle":
             if self.puzzle_count >= self.max_puzzles:
                 return False
@@ -69,14 +73,17 @@ class Room:
         return display
 
 class Grid:
-    def __init__(self, grid_size:int, room_size:int|None=None):
+    def __init__(self, grid_size:int, room_size:int|None=None, boss_room:bool|None=None):
         if room_size is None:
             room_size = 3
         elif room_size % 2 == 0:
             raise ValueError("Room size must be an odd number") 
+        if boss_room is None:
+            boss_room = True
         self.room_size = room_size
         self.size = grid_size
         self.rooms = {}
+        self.boss_room = boss_room
         self.define_rooms()
         self.connect_rooms()
         self.add_puzzles(10, is_center=True)
@@ -131,7 +138,11 @@ class Grid:
                 if room.add_cell_type("puzzle", x, y):
                     puzzles_added += 1
                     print(f"Added puzzle {puzzles_added} to room {room.id}")
-
+        if self.boss_room:
+            # Add boss puzzle to center room
+            center_room = self.rooms[(self.size//2, self.size//2)]
+            center_room.add_cell_type("locked", center_room.size//2, center_room.size//2)
+            print("Added boss puzzle to center room")
     def print_grid(self):
         for row in range(self.size):
             for col in range(self.size):
