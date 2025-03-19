@@ -19,7 +19,7 @@ class Player:
         self.last_door_used = None  # Track last door used
         self.has_key = False  # Add this new attribute
         self.puzzles_solved = 0
-        self.puzzles_required = 4  # Number of puzzles needed to unlock boss
+        self.puzzles_required = 6  # Number of puzzles needed to unlock boss
         Grid(3,5)
         # Find and set the player's current room
         for room_obj in Room.all_rooms:
@@ -99,7 +99,7 @@ class Player:
                     time.sleep(1)  # Pause for dramatic effect
                     
                     random_puzzle = random.choice(n_puzzles)
-                    result = random_puzzle
+                    result = random_puzzle()
                     
                     # Only remove puzzle from pool and clear tile if solved
                     if result:
