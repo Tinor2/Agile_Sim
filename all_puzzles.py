@@ -162,8 +162,66 @@ def quick_math():
     return True
 
 def boss_puzzle():
-    # Implement your boss puzzle logic here
-    return True  # or False based on puzzle completion
+    # Define the magical symbols and their valid text inputs
+    symbols = {
+        "🔥": ["f", "fire"],
+        "💧": ["w", "water"],
+        "🌍": ["e", "earth"],
+        "✨": ["m", "magic"]
+    }
+
+    # Difficulty settings
+    sequence_length = 3  # Starting sequence length
+    max_rounds = 3       # Number of rounds to win
+    time_limit = 8       # Time limit per round in seconds
+
+    print("\n=== Spell Sequence Challenge ===")
+    print("The boss casts a sequence of magical symbols. Memorize and replicate it!")
+    print("Symbols: 🔥 (Fire), 💧 (Water), 🌍 (Earth), ✨ (Magic)")
+    print(f"You have {time_limit} seconds to input each symbol.\n")
+    time.sleep(2)
+
+    for round in range(1, max_rounds + 1):
+        # Generate a random sequence of symbols
+        sequence = random.choices(list(symbols.keys()), k=sequence_length)
+        print(f"\nRound {round}: Memorize this sequence!")
+        print(" ".join(sequence))
+        time.sleep(2)  # Show the sequence for 2 seconds
+
+        # Erase the line with the sequence
+        print("\033[F\033[2K", end="")  # Move cursor up and clear the line
+
+        # Get player input
+        print(f"Round {round}: Enter the sequence one symbol at a time.")
+        player_input = []
+        start_time = time.time()
+
+        for i in range(sequence_length):
+            # Prompt for each symbol in the sequence
+            symbol_input = input(f"Symbol {i + 1}: ").strip().lower()
+            elapsed_time = time.time() - start_time
+
+            # Check if the player ran out of time
+            if elapsed_time > time_limit:
+                print("\n⏰ Time's up! The boss's magic overwhelms you.")
+                return False
+
+            # Validate the input
+            valid_inputs = symbols[sequence[i]]
+            if symbol_input not in valid_inputs:
+                print(f"\n❌ Incorrect! The boss's magic strikes you.")
+                print(f"The correct sequence was: {' '.join(sequence)}")
+                return False
+
+            player_input.append(symbol_input)
+
+        # If the player completes the sequence successfully
+        print("\n✨ Correct! You matched the sequence.")
+        sequence_length += 1  # Increase sequence length for the next round
+
+    # If the player completes all rounds successfully
+    print("\n🎉 You defeated the boss's spell sequence challenge!")
+    return True
 
 # Store functions in a list without calling them
 normal_puzzles = [
