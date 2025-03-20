@@ -13,11 +13,12 @@ class Player:
             starting_room_id: Tuple (row, col) identifying the starting room
             starting_position: Tuple (x, y) for starting coordinates within the room
         """
+        self.death_count = 0
         self.current_room_id = starting_room_id
         self.position = starting_position
         self.current_room = None
         self.last_door_used = None  # Track last door used
-        self.has_key = False  # Add this new attribute
+        self.has_key = True  # Add this new attribute
         self.puzzles_solved = 0
         self.puzzles_required = 6  # Number of puzzles needed to unlock boss
         Grid(3,5)
@@ -73,19 +74,38 @@ class Player:
                         time.sleep(1)
                         return False
                 elif cell_type == "boss":
-                    # Handle boss encounter
-                    print("\n⚔️ Preparing for boss battle...")
+                    # Clear screen for boss fight
+                    print("\033[H\033[J", end="")
+                    print("\n" + "="*50)
+                    print("⚔️  FINAL BATTLE! ⚔️")
+                    print("="*50)
+                    print("\nThe Null awaits, ready to test your mastery...")
+                    print("Are you prepared to face the ultimate challenge?")
+                    print("\nPress Enter to begin the battle, or 'q' to retreat...")
+                    
+                    choice = input().lower()
+                    if choice == 'q':
+                        return False
+                    
+                    # Clear screen for battle
+                    print("\033[H\033[J", end="")
+                    print("\n⚔️ The battle begins...")
+                    time.sleep(1)
+                    
                     from all_puzzles import key_puzzles
                     if key_puzzles:
-                        boss_puzzle = key_puzzles[0]  # Get the boss puzzle
+                        boss_puzzle = key_puzzles[0]
                         result = boss_puzzle()
                         if result:
-                            # Clear boss cell on victory
                             self.current_room.add_cell_type("none", new_x, new_y)
-                            print("\n🎉 Boss defeated!")
+                            print("\n🎉 The Null has been defeated!")
+                            time.sleep(1)
+                            show_victory_screen(self.death_count)
                         else:
-                            print("\n💔 Failed to defeat the boss...")
-                        time.sleep(1)
+                            self.death_count += 1
+                            print("\n💔 The Null overwhelms you...")
+                            time.sleep(1)
+                            show_death_screen(self.death_count)
                     return False
                 if self.check_for_special_cell((new_x,new_y)) == "puzzle":
                     # Store original position
@@ -120,6 +140,7 @@ class Player:
                         print("\n✨ Puzzle solved successfully!")
                     else:
                         # Stay at original position if puzzle failed
+                        self.death_count += 1
                         print("\n❌ Puzzle not solved. The magical barrier remains...")
                         self.position = (original_x, original_y)
                         time.sleep(1)
@@ -274,6 +295,36 @@ def main():
     except KeyboardInterrupt:
         print("\nGame terminated by user")
 
+def show_victory_screen(death_count):
+    """Display victory screen with death count"""
+    print("\033[H\033[J", end="")  # Clear screen
+    print("\n" + "="*50)
+    print("🌟 VICTORY! 🌟")
+    print("="*50)
+    print("\nEldrin has defeated The Null and restored balance to Lysira!")
+    print("\nThe Codex of the Arcane Grid glows with renewed energy,")
+    print("its magical pathways once again flowing with pure magic.")
+    print(f"\n💀 Total Deaths: {death_count}")
+    print("\nCongratulations on completing your journey!")
+    print("="*50)
+    input("\nPress Enter to exit...")
+    exit(0)
+
+def show_death_screen(death_count):
+    """Display death screen with death count"""
+    print("\033[H\033[J", end="")  # Clear screen
+    print("\n" + "="*50)
+    print("💀 DEFEATED 💀")
+    print("="*50)
+    print("\nThe Null's corruption proves too powerful...")
+    print("Lysira's magic fades as darkness consumes the realm.")
+    print(f"\n⚰️  Total Deaths: {death_count}")
+    print("\nGame Over - The realm needs you to try again!")
+    print("="*50)
+    input("\nPress Enter to exit...")
+    exit(1)
+
+# Modify the boss battle section in the Player.move method:
 def handle_movement(player, direction):
     old_room_id = player.current_room_id
     if player.move(direction):
