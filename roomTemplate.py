@@ -137,12 +137,12 @@ class Grid:
             if room.cells[x][y] == Room.cell_icons["none"]:
                 if room.add_cell_type("puzzle", x, y):
                     puzzles_added += 1
-                    print(f"Added puzzle {puzzles_added} to room {room.id}")
+                    # print(f"Added puzzle {puzzles_added} to room {room.id}")
         if self.boss_room:
             # Add boss puzzle to center room
             center_room = self.rooms[(self.size//2, self.size//2)]
             center_room.add_cell_type("locked", center_room.size//2, center_room.size//2)
-            print("Added boss puzzle to center room")
+            # print("Added boss puzzle to center room")
     def print_grid(self):
         for row in range(self.size):
             for col in range(self.size):

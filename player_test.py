@@ -18,7 +18,7 @@ class Player:
         self.position = starting_position
         self.current_room = None
         self.last_door_used = None  # Track last door used
-        self.has_key = True  # Add this new attribute
+        self.has_key = False  # Add this new attribute
         self.puzzles_solved = 0
         self.puzzles_required = 6  # Number of puzzles needed to unlock boss
         Grid(3,5)

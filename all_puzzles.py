@@ -1,6 +1,16 @@
 import random
 import time 
 
+# Add help texts dictionary
+puzzle_help = {
+    "riddle": "Solve the magical riddle by entering your answer.\nThe answer is always a single word related to magic and fantasy.",
+    "unscramble": "Rearrange the letters to form a magical word.\nAll words are related to magic, fantasy, and the mystical realm.",
+    "number": "A number between 1 and 100 has been chosen.\nUse 'higher' or 'lower' hints to find it within 6 attempts.",
+    "memory": "Memorize the list of magical words shown briefly.\nRecall them one at a time. You need 4 correct to win, but 3 wrong guesses will fail.",
+    "math": "Solve 6 quick math problems.\nUse basic operations (+, -, *, /) with numbers 1-10.\n5 incorrect answers will result in failure.",
+    "boss": "Match the sequence of magical symbols shown.\nUse the first letter or full word of each element (e.g., 'f' or 'fire' for 🔥).\nComplete 3 rounds with increasing length to win."
+}
+
 def riddle_game():
     riddles = {
         "I stand with two arms, open or closed... What am I?": "Gate",
@@ -13,7 +23,10 @@ def riddle_game():
     attempts = 3
     while attempts > 0:
         print(riddle)
-        user_answer = input(f"Your answer ({attempts} attempts left): ").strip().lower()
+        user_answer = input(f"Your answer ({attempts} attempts left) [? for help]: ").strip().lower()
+        if user_answer == "?":
+            print("\n💡 HELP:", puzzle_help["riddle"])
+            continue
         if user_answer == answer.lower():
             print("Correct!")
             return True
@@ -37,7 +50,10 @@ def unscramble_word():
     attempts = 3
     while attempts > 0:
         print(f"Unscramble this word: {scrambled}")
-        user_guess = input(f"Your answer ({attempts} attempts left): ").strip().lower()
+        user_guess = input(f"Your answer ({attempts} attempts left) [? for help]: ").strip().lower()
+        if user_guess == "?":
+            print("\n💡 HELP:", puzzle_help["unscramble"])
+            continue
         if user_guess == correct_word.lower():
             print("Correct!")
             return True
